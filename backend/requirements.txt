@@ -9,3 +9,8 @@ pypdf
 tiktoken
 pinecone-client
 numpy
+pinecone
+sqlalchemy
+psycopg2-binary
+psycopg2
+pgvector
