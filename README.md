@@ -49,6 +49,7 @@ The agent can perform up to **10 reasoning steps**, making multiple tool calls a
 ## 📋 Prerequisites
 
 - Python 3.8+
+- Node.js 18+ and npm (for frontend)
 - PostgreSQL 12+ with pgvector extension
 - OpenAI API key
 - PDF documents to ingest (WHO guidelines)
@@ -103,6 +104,16 @@ uvicorn app.main:app --reload
 
 The API will be available at `http://localhost:8000`
 
+### 7. Start the Frontend (Optional)
+
+```bash
+cd ../frontend
+npm install
+npm run dev
+```
+
+The frontend will be available at `http://localhost:3000` and connects to the backend API automatically.
+
 ## 📡 API Usage
 
 ### Ask a Question
@@ -127,26 +138,25 @@ curl -X POST "http://localhost:8000/ask?query=What are the symptoms and treatmen
 ## 📁 Project Structure
 
 ```
-backend/
-├── app/
-│   ├── main.py              # FastAPI application
-│   ├── config.py            # Configuration management
-│   ├── db/                  # Database models and connection
-│   ├── ingestion/           # PDF ingestion pipeline
-│   └── rag/
-│       ├── agent.py         # Agentic RAG agent
-│       └── retriever.py    # Vector retrieval with tool wrapper
-├── data/
-│   └── raw_pdfs/            # Place PDFs here for ingestion
-└── requirements.txt
+Agentic-RAG/
+├── backend/              # Python FastAPI backend
+│   ├── app/
+│   │   ├── main.py      # FastAPI application
+│   │   ├── db/          # Database models and connection
+│   │   ├── ingestion/   # PDF ingestion pipeline
+│   │   └── rag/         # Agentic RAG implementation
+│   ├── data/raw_pdfs/   # Place PDFs here for ingestion
+│   └── requirements.txt
+└── frontend/            # React frontend
+    ├── src/components/   # React components
+    └── package.json
 ```
 
 ## 🛠️ Key Technologies
 
-- **LangChain**: Agent framework and tool integration
-- **LangGraph**: State management for multi-step reasoning
-- **pgvector**: Vector similarity search in PostgreSQL
-- **FastAPI**: Modern Python web framework
+- **Backend**: FastAPI, LangChain, LangGraph, pgvector, PostgreSQL
+- **Frontend**: React, Vite, React Markdown
+- **AI**: OpenAI GPT-4o-mini, text-embedding-3-small
 
 ## 📝 License
 
