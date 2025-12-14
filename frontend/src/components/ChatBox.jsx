@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import axios from 'axios'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { API_BASE_URL } from '../config'
 import './ChatBox.css'
 
 const ChatBox = () => {
@@ -40,9 +41,11 @@ const ChatBox = () => {
     setIsLoading(true)
 
     try {
-      const response = await axios.post('http://localhost:8000/ask', null, {
-        params: { query: userMessage.content }
-      })
+      const response = await axios.post(
+        `${API_BASE_URL}/ask`,
+        null,
+        { params: { query: userMessage.content } }
+      )
 
       const assistantMessage = {
         role: 'assistant',
@@ -55,7 +58,7 @@ const ChatBox = () => {
       console.error('Error:', error)
       const errorMessage = {
         role: 'assistant',
-        content: 'Sorry, I encountered an error. Please make sure the backend server is running on http://localhost:8000',
+        content: `Sorry, I encountered an error. Please make sure the backend server is running at ${API_BASE_URL}`,
         timestamp: new Date(),
         isError: true
       }
@@ -142,4 +145,3 @@ const ChatBox = () => {
 }
 
 export default ChatBox
-
