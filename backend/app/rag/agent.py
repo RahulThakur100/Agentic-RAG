@@ -3,6 +3,11 @@ from langchain.agents import create_agent
 from .retriever import PgVectorRetriever, create_retrieval_tool
 from langchain_openai import OpenAIEmbeddings
 from langchain_core.messages import HumanMessage
+from ..mlflow_logger import start_run, end_run
+import time
+import json
+import os
+import tempfile
 
 
 class MedicalAgent:
@@ -72,8 +77,19 @@ class MedicalAgent:
             config = {"recursion_limit": 10}
 
             # LangGraph expects messages in a specific format
+            start_time = time.time()
+            start_run(
+                name="rag_inference",
+                params={
+                    "model": self.llm.model,
+                    "temperature": self.llm.temperature,
+                    "top_k": self.retriever.top_k,
+                    "query": query,
+                },
+            )
             result = self.agent.invoke(
-                {"messages": [HumanMessage(content=query)]}, config=config)
+                {"messages": [HumanMessage(content=query)]}, config=config
+            )
 
             # Extract the final answer from the result
             # LangGraph returns a dict with "messages" key containing the conversation
@@ -93,8 +109,26 @@ class MedicalAgent:
             else:
                 answer = str(result)
 
+            # Build and save a simple retrieval/answer trace as JSON
+            trace = {
+                "query": query,
+                "answer": answer,
+            }
+            trace_path = os.path.join(
+                tempfile.gettempdir(),
+                f"rag_retrieval_trace_{int(time.time())}.json",
+            )
+            with open(trace_path, "w", encoding="utf-8") as f:
+                json.dump(trace, f, ensure_ascii=False, indent=2)
+
             print("=" * 60)
             print(f"[Agentic RAG] Final Answer: {answer[:200]}...")
+
+            # Log metrics and artifacts
+            latency = time.time() - start_time
+            metrics = {"latency": latency}
+            artifacts = {"retrieval_trace": trace_path}
+            end_run(metrics=metrics, artifacts=artifacts)
 
             return answer
 
