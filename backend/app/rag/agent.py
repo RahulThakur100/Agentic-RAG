@@ -11,6 +11,12 @@ import os
 import tempfile
 
 
+# Approximate pricing for gpt-4o-mini (USD per 1K tokens).
+# Adjust these if your OpenAI pricing changes.
+INPUT_COST_PER_1K = 0.00015
+OUTPUT_COST_PER_1K = 0.00060
+
+
 class MedicalAgent:
     """
     An agentic RAG agent that can reason about queries, decompose complex questions,
@@ -70,6 +76,7 @@ class MedicalAgent:
 
             # Extract the final answer from the result
             # LangGraph returns a dict with "messages" key containing the conversation
+            messages = []
             if isinstance(result, dict):
                 messages = result.get("messages", [])
                 if messages:
@@ -85,6 +92,26 @@ class MedicalAgent:
                     answer = result.get("output", str(result))
             else:
                 answer = str(result)
+
+            # Try to get accurate token usage from LangChain message metadata
+            input_tokens = 0
+            output_tokens = 0
+            for msg in messages or []:
+                usage = getattr(msg, "usage_metadata", None)
+                if isinstance(usage, dict):
+                    input_tokens += int(usage.get("input_tokens", 0) or 0)
+                    output_tokens += int(usage.get("output_tokens", 0) or 0)
+
+            # Fallback: very rough estimate based on word counts if no usage metadata
+            if input_tokens == 0:
+                input_tokens = len(str(query).split())
+            if output_tokens == 0:
+                output_tokens = len(str(answer).split())
+
+            estimated_cost_usd = (
+                (input_tokens / 1000.0) * INPUT_COST_PER_1K
+                + (output_tokens / 1000.0) * OUTPUT_COST_PER_1K
+            )
 
             # Build and save a simple retrieval/answer trace as JSON
             trace = {
@@ -109,7 +136,7 @@ class MedicalAgent:
             avg_chunk_distance = sum(distances) / \
                 len(distances) if distances else 0.0
 
-            # Very rough token proxy: whitespace-delimited words
+            # Very rough token proxy for answer length (still log separately)
             answer_length_tokens = len(str(answer).split())
 
             metrics = {
@@ -117,6 +144,9 @@ class MedicalAgent:
                 "retrieval_count": float(retrieval_count),
                 "avg_chunk_distance": float(avg_chunk_distance),
                 "answer_length_tokens": float(answer_length_tokens),
+                "input_tokens": float(input_tokens),
+                "output_tokens": float(output_tokens),
+                "estimated_cost_usd": float(estimated_cost_usd),
             }
             artifacts = {"retrieval_trace": trace_path}
             end_run(metrics=metrics, artifacts=artifacts)
