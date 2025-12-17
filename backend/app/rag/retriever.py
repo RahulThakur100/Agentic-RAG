@@ -8,6 +8,9 @@ class PgVectorRetriever:
     def __init__(self, embeddings, top_k=5):
         self.embeddings = embeddings
         self.top_k = top_k
+        # Simple stats for observability/MLflow logging
+        self.call_count = 0
+        self.distances = []
 
     def get_relevant_information(self, query: str):
         """Embeds a query and retrieves top similar documents using pgvector."""
@@ -27,6 +30,13 @@ class PgVectorRetriever:
                 sql,
                 {"query_embedding": query_embedding, "top_k": self.top_k}
             ).fetchall()
+
+        # Update simple retrieval statistics
+        self.call_count += 1
+        for row in rows:
+            # row.distance is the similarity distance returned by pgvector
+            if getattr(row, "distance", None) is not None:
+                self.distances.append(float(row.distance))
 
         docs = []
         for row in rows:

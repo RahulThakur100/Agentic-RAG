@@ -70,6 +70,12 @@ Create a `.env` file in the `backend` directory:
 ```env
 OPENAI_API_KEY=your_openai_api_key
 DB_CONN_STRING=postgresql://user:password@localhost:5432/dbname
+
+# Optional: where to log MLflow runs
+# Local sqlite file at project root (recommended for local dev):
+MLFLOW_TRACKING_URI="sqlite:///C:/Users/YourUser/Agentic-RAG/mlflow.db"
+# Or point to a remote MLflow server:
+# MLFLOW_TRACKING_URI="http://localhost:5000"
 ```
 
 ### 3. Install Dependencies
@@ -113,6 +119,69 @@ npm run dev
 ```
 
 The frontend will be available at `http://localhost:3000` and connects to the backend API automatically.
+
+## 📈 MLflow Tracking & Evaluation
+
+The backend logs every inference and offline evaluation run to MLflow, so you can inspect behavior, performance, and cost over time.
+
+### MLflow Configuration
+
+- Tracking URI is read from `MLFLOW_TRACKING_URI` in `backend/.env` via `app.config` and `app.mlflow_logger`.
+- If `MLFLOW_TRACKING_URI` is not set, the backend falls back to a local SQLite file at the project root: `mlflow.db`.
+
+To view runs:
+
+```bash
+cd backend/..  # project root
+mlflow ui --backend-store-uri sqlite:///$(pwd)/mlflow.db
+```
+
+Or set `MLFLOW_TRACKING_URI` and run `mlflow ui`.
+
+### Inference Metrics (rag_inference)
+
+Each question answered by the agent logs a run to the `rag_inference` experiment with:
+
+- Parameters:
+  - `model` (e.g. `gpt-4o-mini`)
+  - `temperature`
+  - `top_k` (retrieval depth)
+  - `query` (user question)
+  - `prompt_version` (e.g. `system_v1`)
+- Metrics:
+  - `latency` – end-to-end response time (seconds)
+  - `retrieval_count` – how many retrieval/tool calls were made
+  - `avg_chunk_distance` – mean similarity distance of retrieved chunks
+  - `answer_length_tokens` – rough word-count proxy for answer length
+  - `input_tokens` – prompt tokens (from usage metadata or estimated)
+  - `output_tokens` – completion tokens (from usage metadata or estimated)
+  - `estimated_cost_usd` – approximate OpenAI cost for the call
+
+This gives you visibility into performance, retrieval behavior, verbosity, and cost per query.
+
+### Retrieval Evaluation (hit_rate@k)
+
+There is a small, fixed evaluation set under `backend/app/evaluation/`:
+
+- `eval_dataset.json` – list of objects with:
+  - `question`
+  - `expected_doc_filename` (the document that should appear in the retrieved chunks)
+- `run_eval.py` – runs all questions against the retriever and checks whether the expected document appears in the top‑`k` results.
+
+Run the evaluation from the `backend` directory:
+
+```bash
+cd backend
+python -m app.evaluation.run_eval
+```
+
+This logs a `rag_retrieval_eval` experiment run with:
+
+- Params:
+  - `top_k`
+  - `num_questions`
+- Metrics:
+  - `hit_rate_at_k` – fraction of questions where the expected document was retrieved.
 
 ## 📡 API Usage
 
