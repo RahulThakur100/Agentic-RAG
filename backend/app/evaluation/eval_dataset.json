@@ -1,0 +1,23 @@
+[
+  {
+    "question": "What is the recommended treatment for pneumonia, according to WHO?",
+    "expected_doc_filename": "WHO-Guidelines_on_management_of_pneumonia.pdf"
+  },
+  {
+    "question": "What are the key symptoms of malaria according to WHO?",
+    "expected_doc_filename": "WHO guidelines for malaria.pdf"
+  },
+  {
+    "question": "How should childhood pneumonia be managed?",
+    "expected_doc_filename": "WHO-Guidelines_on_management_of_pneumonia.pdf"
+  },
+  {
+    "question": "What are the symptoms of pneumonia?",
+    "expected_doc_filename": "WHO-Guidelines_on_management_of_pneumonia.pdf"
+  },
+  {
+    "question": "How can we prevent malaria",
+    "expected_doc_filename": "WHO guidelines for malaria.pdf"
+  }
+]
+

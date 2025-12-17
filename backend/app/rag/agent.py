@@ -4,6 +4,7 @@ from .retriever import PgVectorRetriever, create_retrieval_tool
 from langchain_openai import OpenAIEmbeddings
 from langchain_core.messages import HumanMessage
 from ..mlflow_logger import start_run, end_run
+from .prompts import system_prompt, PROMPT_VERSION
 import time
 import json
 import os
@@ -25,31 +26,6 @@ class MedicalAgent:
         # Create the retrieval tool
         self.search_tool = create_retrieval_tool(self.retriever)
         self.tools = [self.search_tool]
-
-        # Create the agent with custom system prompt for true agentic behavior
-        system_prompt = """You are an expert medical guideline assistant with access to WHO medical documents.
-
-                            You work autonomously to answer medical questions by reasoning step-by-step and deciding what actions to take.
-
-                            You have access to this tool:
-                            - search_medical_documents: Search WHO medical documents and guidelines stored in a vector database
-
-                            Your decision-making process:
-                            1. Analyze the question to understand what information is needed
-                            2. For complex questions, break them into sub-questions that can be searched independently
-                            3. Decide whether to search, and if so, what query terms to use
-                            4. Evaluate search results - are they sufficient? Do you need to search again with different terms?
-                            5. Synthesize information from multiple searches if needed
-                            6. Provide a comprehensive answer based only on retrieved documents
-
-                            Key principles:
-                            - Think critically about whether a search is needed and what to search for
-                            - For multi-part questions, search each part separately (e.g., "symptoms AND treatment" → search "symptoms" then "treatment")
-                            - If initial results are insufficient, try alternative search terms or more specific queries
-                            - Only answer based on information found in the documents
-                            - If information is not found after multiple attempts, clearly state that
-                            - Cite document sources when possible
-                            - Reason autonomously - decide your own approach to solving the problem"""
 
         # Create agent using LangGraph (create_agent returns a CompiledStateGraph)
         self.agent = create_agent(
@@ -85,6 +61,7 @@ class MedicalAgent:
                     "temperature": self.llm.temperature,
                     "top_k": self.retriever.top_k,
                     "query": query,
+                    "prompt_version": PROMPT_VERSION,
                 },
             )
             result = self.agent.invoke(
@@ -126,7 +103,21 @@ class MedicalAgent:
 
             # Log metrics and artifacts
             latency = time.time() - start_time
-            metrics = {"latency": latency}
+            # Tool / retrieval statistics
+            retrieval_count = getattr(self.retriever, "call_count", 0)
+            distances = getattr(self.retriever, "distances", []) or []
+            avg_chunk_distance = sum(distances) / \
+                len(distances) if distances else 0.0
+
+            # Very rough token proxy: whitespace-delimited words
+            answer_length_tokens = len(str(answer).split())
+
+            metrics = {
+                "latency": latency,
+                "retrieval_count": float(retrieval_count),
+                "avg_chunk_distance": float(avg_chunk_distance),
+                "answer_length_tokens": float(answer_length_tokens),
+            }
             artifacts = {"retrieval_trace": trace_path}
             end_run(metrics=metrics, artifacts=artifacts)
 
