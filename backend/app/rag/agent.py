@@ -81,7 +81,7 @@ class MedicalAgent:
             start_run(
                 name="rag_inference",
                 params={
-                    "model": self.llm.model,
+                    "model": self.llm,
                     "temperature": self.llm.temperature,
                     "top_k": self.retriever.top_k,
                     "query": query,

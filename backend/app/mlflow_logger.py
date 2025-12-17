@@ -1,4 +1,11 @@
 import mlflow
+from pathlib import Path
+
+
+# Configure MLflow to use a single sqlite DB at the project root: mlflow.db
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
+_MLFLOW_DB_PATH = _PROJECT_ROOT / "mlflow.db"
+mlflow.set_tracking_uri(f"sqlite:///{_MLFLOW_DB_PATH.as_posix()}")
 
 
 def start_run(name: str, params: dict):
