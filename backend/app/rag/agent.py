@@ -12,7 +12,7 @@ import tempfile
 
 
 # Approximate pricing for gpt-4o-mini (USD per 1K tokens).
-# Adjust these if your OpenAI pricing changes.
+# Adjust according to OpenAI pricing changes.
 INPUT_COST_PER_1K = 0.00015
 OUTPUT_COST_PER_1K = 0.00060
 
